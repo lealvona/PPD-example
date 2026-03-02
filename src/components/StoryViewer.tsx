@@ -1,12 +1,8 @@
-/**
- * StoryViewer — Main orchestrator component.
- *
- * This is the top-level component that wires the story engine to the UI.
- * It manages phase transitions and renders the appropriate sub-component
- * for each phase: StartScreen, VideoPlayer + ChoiceOverlay, or EndScreen.
- */
-
-import { type FC, useMemo } from "react";
+import { type FC, useEffect, useMemo, useState } from "react";
+import type { Choice, StoryNode } from "../types/story";
+import {
+  type StoryProgressSnapshot,
+} from "../engine/StoryEngine";
 import { useStoryEngine } from "../hooks/useStoryEngine";
 import { StartScreen } from "./StartScreen";
 import { VideoPlayer } from "./VideoPlayer";
@@ -14,15 +10,53 @@ import { ChoiceOverlay } from "./ChoiceOverlay";
 import { EndScreen } from "./EndScreen";
 import "./StoryViewer.css";
 
+const STORAGE_PREFIX = "cyoa-progress";
+
 export interface StoryViewerProps {
-  /**
-   * Path to the story JSON file, relative to the public root.
-   * Example: "/stories/sample/story.json"
-   */
   storyUrl: string;
+  onExit?: () => void;
 }
 
-export const StoryViewer: FC<StoryViewerProps> = ({ storyUrl }) => {
+function getProgressStorageKey(storyUrl: string, storyKey?: string): string {
+  const suffix = storyKey && storyKey.length > 0 ? storyKey : storyUrl;
+  return `${STORAGE_PREFIX}:${suffix}`;
+}
+
+function filterTimedChoices(
+  node: StoryNode,
+  choices: Choice[],
+  currentTime: number,
+  duration: number,
+  isPlaying: boolean,
+  leadTime: number
+): Choice[] {
+  const timing = node.choiceTiming ?? "on_end";
+
+  if (timing === "on_pause") {
+    return isPlaying ? [] : choices;
+  }
+
+  if (timing === "during_video") {
+    return choices.filter((choice) => {
+      const at = choice.showAtTime ?? 0;
+      return currentTime >= at;
+    });
+  }
+
+  // on_end
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return choices;
+  }
+
+  const remaining = duration - currentTime;
+  if (remaining <= Math.max(0, leadTime)) {
+    return choices;
+  }
+
+  return [];
+}
+
+export const StoryViewer: FC<StoryViewerProps> = ({ storyUrl, onExit }) => {
   const {
     state,
     meta,
@@ -38,19 +72,92 @@ export const StoryViewer: FC<StoryViewerProps> = ({ storyUrl }) => {
     engine,
   } = useStoryEngine({ storyUrl });
 
-  // Preload URLs for upcoming videos
-  const preloadUrls = useMemo(() => {
-    return nextNodes.map((node) => getVideoUrl(node));
-  }, [nextNodes, getVideoUrl]);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
 
-  // Total nodes (for EndScreen stats)
-  const totalNodes = engine.totalNodes;
+  const storyStorageKey = useMemo(
+    () => getProgressStorageKey(storyUrl, engine.storyKey),
+    [storyUrl, engine.storyKey]
+  );
 
-  // ---------------------------------------------------------------------------
-  // Render by phase
-  // ---------------------------------------------------------------------------
+  const preloadUrls = useMemo(
+    () =>
+      (config?.preloadNext ?? true)
+        ? nextNodes.map((node) => getVideoUrl(node))
+        : [],
+    [config?.preloadNext, nextNodes, getVideoUrl]
+  );
 
-  // Loading
+  const visibleChoices = useMemo(() => {
+    if (!state.currentNode) return [];
+    if (state.phase === "choosing") return availableChoices;
+    if (state.phase !== "playing") return [];
+
+    return filterTimedChoices(
+      state.currentNode,
+      availableChoices,
+      playbackTime,
+      duration,
+      isPlaying,
+      config?.choiceLeadTime ?? 0
+    );
+  }, [
+    state.currentNode,
+    state.phase,
+    availableChoices,
+    playbackTime,
+    duration,
+    isPlaying,
+    config?.choiceLeadTime,
+  ]);
+
+  const shouldShowChoiceOverlay =
+    visibleChoices.length > 0 &&
+    state.currentNode !== null &&
+    (state.phase === "choosing" || state.phase === "playing");
+
+  const savedSnapshot = useMemo<StoryProgressSnapshot | null>(() => {
+    if (state.phase !== "start_screen") return null;
+    const raw = localStorage.getItem(storyStorageKey);
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw) as StoryProgressSnapshot;
+      return parsed.currentNodeId ? parsed : null;
+    } catch {
+      localStorage.removeItem(storyStorageKey);
+      return null;
+    }
+  }, [state.phase, storyStorageKey]);
+
+  useEffect(() => {
+    if (state.phase === "playing") {
+      const snapshot = engine.createProgressSnapshot();
+      if (snapshot) {
+        localStorage.setItem(storyStorageKey, JSON.stringify(snapshot));
+      }
+    }
+
+    if (state.phase === "ended") {
+      localStorage.removeItem(storyStorageKey);
+    }
+  }, [engine, state.phase, storyStorageKey]);
+
+  const handleResume = () => {
+    if (!savedSnapshot) return;
+    const loaded = engine.loadProgressSnapshot(savedSnapshot);
+    if (!loaded) {
+      localStorage.removeItem(storyStorageKey);
+      start();
+    }
+  };
+
+  const handleRestart = () => {
+    localStorage.removeItem(storyStorageKey);
+    restart();
+  };
+
   if (state.phase === "loading") {
     return (
       <div className="story-viewer story-viewer--loading">
@@ -62,7 +169,6 @@ export const StoryViewer: FC<StoryViewerProps> = ({ storyUrl }) => {
     );
   }
 
-  // Error
   if (state.phase === "error") {
     return (
       <div className="story-viewer story-viewer--error">
@@ -75,16 +181,19 @@ export const StoryViewer: FC<StoryViewerProps> = ({ storyUrl }) => {
     );
   }
 
-  // Start screen
   if (state.phase === "start_screen" && meta) {
     return (
       <div className="story-viewer">
-        <StartScreen meta={meta} onStart={start} />
+        <StartScreen
+          meta={meta}
+          onStart={start}
+          canResume={savedSnapshot !== null}
+          onResume={handleResume}
+        />
       </div>
     );
   }
 
-  // Playing or choosing (video is on screen in both phases)
   if (
     (state.phase === "playing" ||
       state.phase === "choosing" ||
@@ -100,13 +209,9 @@ export const StoryViewer: FC<StoryViewerProps> = ({ storyUrl }) => {
         }`}
         data-theme={state.currentNode.theme}
       >
-        {/* Node title badge */}
-        <div className="story-viewer__node-title">
-          {state.currentNode.title}
-        </div>
+        <div className="story-viewer__node-title">{state.currentNode.title}</div>
 
-        {/* Back button (when history > 1) */}
-        {state.history.length > 1 && (
+        {config?.allowRevisit && state.history.length > 1 && (
           <button
             className="story-viewer__back-btn"
             onClick={goBack}
@@ -116,38 +221,50 @@ export const StoryViewer: FC<StoryViewerProps> = ({ storyUrl }) => {
           </button>
         )}
 
-        {/* Video player */}
+        {onExit && (
+          <button
+            className="story-viewer__exit-btn"
+            onClick={onExit}
+            aria-label="Back to library"
+          >
+            Library
+          </button>
+        )}
+
         <VideoPlayer
+          key={state.currentNode.id}
           node={state.currentNode}
           videoUrl={videoUrl}
           onEnded={videoEnded}
           preloadUrls={preloadUrls}
           volume={config?.defaultVolume ?? 1}
+          onTimeUpdate={(current, total) => {
+            setPlaybackTime(current);
+            setDuration(total);
+          }}
+          onPlaybackStateChange={setIsPlaying}
         />
 
-        {/* Choice overlay (only during "choosing" phase) */}
-        {state.phase === "choosing" && availableChoices.length > 0 && (
-          <ChoiceOverlay choices={availableChoices} onChoose={choose} />
+        {shouldShowChoiceOverlay && (
+          <ChoiceOverlay choices={visibleChoices} onChoose={choose} />
         )}
       </div>
     );
   }
 
-  // Ended
   if (state.phase === "ended" && state.currentNode) {
     return (
       <div className="story-viewer">
         <EndScreen
           endingNode={state.currentNode}
           history={state.history}
-          totalNodes={totalNodes}
-          onRestart={restart}
+          totalNodes={engine.totalNodes}
+          onRestart={handleRestart}
         />
       </div>
     );
   }
 
-  // Fallback
   return (
     <div className="story-viewer story-viewer--loading">
       <p>Initializing...</p>

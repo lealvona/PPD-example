@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { StoryViewer } from "./components/StoryViewer";
+import { StoryLibrary } from "./components/StoryLibrary";
 
 /**
  * App — Root component.
@@ -9,7 +11,18 @@ import { StoryViewer } from "./components/StoryViewer";
  * The story JSON and video assets live in `public/stories/<story-name>/`.
  */
 function App() {
-  return <StoryViewer storyUrl="/stories/sample/story.json" />;
+  const [activeStoryUrl, setActiveStoryUrl] = useState<string | null>(null);
+
+  if (!activeStoryUrl) {
+    return <StoryLibrary onOpenStory={setActiveStoryUrl} />;
+  }
+
+  return (
+    <StoryViewer
+      storyUrl={activeStoryUrl}
+      onExit={() => setActiveStoryUrl(null)}
+    />
+  );
 }
 
 export default App;

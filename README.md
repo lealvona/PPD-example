@@ -2,7 +2,10 @@
 
 A web application for creating **choose-your-own-adventure** style interactive video experiences. Users watch video scenes and make choices that branch the narrative into different paths, leading to multiple possible endings.
 
-Built with React, TypeScript, and Vite.
+Built as an end-to-end system:
+- Web player (`React + TypeScript + Vite`)
+- Import API (`Node + Express`, streaming zip extraction)
+- Android creator app scaffold (`Kotlin + Compose + CameraX + Room`)
 
 ---
 
@@ -23,7 +26,9 @@ Built with React, TypeScript, and Vite.
 - [Component Reference](#component-reference)
 - [Engine API Reference](#engine-api-reference)
 - [Extending the Application](#extending-the-application)
-- [Known Limitations & Future Work](#known-limitations--future-work)
+- [Import API (ZIP Ingestion)](#import-api-zip-ingestion)
+- [Android Creator App](#android-creator-app)
+- [Known Limitations](#known-limitations)
 - [Tech Stack](#tech-stack)
 
 ---
@@ -37,8 +42,8 @@ npm install
 # Generate placeholder videos for the sample story (requires ffmpeg)
 npm run generate-placeholders
 
-# Start the dev server
-npm run dev
+# Start web + import API together
+npm run dev:all
 
 # Open http://localhost:5173 in your browser
 ```
@@ -61,7 +66,10 @@ npm run dev
 
 ## Architecture Overview
 
-The application is a **client-side single-page application**. There is no backend — all story data and video assets are static files served from the `public/` directory.
+The platform is a **split runtime**:
+- Web client for playback and story library UI.
+- Node import API for low-memory zip ingestion and cataloging.
+- Static story assets from `public/` (bundled) and `data/stories/` (imported).
 
 ```
                     ┌─────────────────────────────────────────┐
@@ -108,15 +116,36 @@ The application is a **client-side single-page application**. There is no backen
 
 ```
 interactive_PPD/
+├── android-creator/                   # Android app scaffold (creator + capture)
+│   ├── app/
+│   │   ├── build.gradle.kts
+│   │   └── src/main/java/com/example/cyoacreator/
+│   │       ├── MainActivity.kt
+│   │       ├── MainViewModel.kt
+│   │       ├── MarkdownParser.kt
+│   │       ├── LlmFallbackClient.kt
+│   │       ├── PackageExporter.kt
+│   │       ├── ProjectDatabase.kt
+│   │       └── ProjectRepository.kt
+│   ├── build.gradle.kts
+│   └── settings.gradle.kts
 ├── public/
+│   ├── package.manifest.schema.json    # Package manifest schema for ZIPs
 │   └── stories/
 │       ├── story.schema.json          # JSON Schema for story files
 │       └── sample/
+│           ├── package.manifest.json  # Sample package manifest
 │           ├── story.json             # Sample story definition
 │           └── videos/                # Video files for the sample story
 │               ├── intro.webm
 │               ├── hallway.webm
 │               └── ...
+├── server/
+│   ├── index.mjs                       # Import API entrypoint
+│   ├── zip-importer.mjs                # Streaming ZIP extraction + validation
+│   ├── catalog-store.mjs               # Persist imported story catalog
+│   ├── validate-story.mjs              # Server-side story shape checks
+│   └── constants.mjs
 ├── scripts/
 │   ├── generate-placeholders.js       # Generate placeholder videos (ffmpeg)
 │   └── validate-story.js             # CLI story validation tool
@@ -135,7 +164,7 @@ interactive_PPD/
 │   │   └── EndScreen.tsx + .css       # Ending / completion screen
 │   ├── utils/
 │   │   └── validateStory.ts          # Runtime story validation
-│   ├── App.tsx                        # Root component
+│   ├── App.tsx                        # Story library + player root
 │   ├── App.css
 │   ├── main.tsx                       # React entry point
 │   └── index.css                      # Global styles
@@ -165,8 +194,11 @@ interactive_PPD/
 
 ### Navigation Features
 
-- **Back button** — visible on hover when history length > 1. Replays the previous node.
-- **Preloading** — the next set of possible videos are preloaded via `<link rel="preload">` tags for seamless transitions.
+- **Timed choices** — supports `on_end`, `during_video`, and `on_pause` timing modes.
+- **Choice lead time** — `config.choiceLeadTime` can reveal end-of-scene choices before clip finish.
+- **Back button** — enabled only when `config.allowRevisit` is `true` and history exists.
+- **Auto resume** — player snapshots progress in localStorage and offers `Continue` at start screen.
+- **Preloading** — next possible videos are preloaded via `<link rel="preload">` when `config.preloadNext` is enabled.
 - **Keyboard** — choice buttons are focusable and clickable via Enter/Space.
 
 ---
@@ -608,14 +640,45 @@ No tests exist yet. Recommended coverage:
 
 ---
 
+## Import API (ZIP Ingestion)
+
+The API is implemented in `server/` and is designed for low-memory extraction.
+
+- `POST /api/import` — upload a `.zip` package (`multipart/form-data`, field name: `package`).
+- `GET /api/stories` — fetch imported story catalog.
+- `GET /api/health` — health check.
+
+Security and resilience controls:
+
+- streaming unzip (entry-by-entry, no whole-archive buffering)
+- Zip Slip path traversal protection
+- max zip size, max entry count, max expanded-bytes limits
+- allowlist of package files (`story.json`, `package.manifest.json`, `videos/*`)
+- incomplete package detection (missing referenced clips)
+
+## Android Creator App
+
+`android-creator/` contains a Kotlin/Compose scaffold for on-device authoring and capture:
+
+- create/resume projects (Room persistence)
+- structured markdown parser to produce `story.json`
+- LLM fallback client for raw prose conversion (OpenAI-compatible API)
+- CameraX in-app recording flow per scene (`Record/Retake`) + gallery attach
+- package exporter that streams `story.json + package.manifest.json + videos/*` into zip
+- package import flow for incomplete and complete zips (resume authoring)
+
+Build/run (from `android-creator/`):
+
+```bash
+./gradlew assembleDebug
+```
+
 ## Known Limitations
 
-- **No SSR** — purely client-side. SEO requires pre-rendering.
-- **No streaming** — all videos must be fully hosted static files.
-- **`during_video` timing not implemented** — choices only appear after video ends.
-- **`allowRevisit` not implemented** — reserved in schema for future use.
-- **No audio-only support** — nodes require video files.
-- **Autoplay may be blocked** — browsers require user interaction before autoplay with sound. The first play after "Begin Story" satisfies this.
+- Android creator is a production-grade scaffold, but CameraX capture UI and full export wizard still require final implementation polish.
+- No SSR for web player; frontend is SPA.
+- No authenticated multi-user cloud sync yet (local replay progress is supported in browser).
+- Autoplay may be blocked by browser policy until user interaction.
 
 ---
 
@@ -626,9 +689,12 @@ No tests exist yet. Recommended coverage:
 | [React 19](https://react.dev) | UI rendering |
 | [TypeScript 5.9](https://www.typescriptlang.org) | Type safety |
 | [Vite 7](https://vite.dev) | Dev server, bundler, HMR |
+| [Express 4](https://expressjs.com) | ZIP import API |
+| [yauzl](https://github.com/thejoshwolfe/yauzl) | Streaming zip extraction |
 | HTML5 `<video>` | Video playback |
 | CSS (vanilla) | Styling — no framework dependency |
 | [ffmpeg](https://ffmpeg.org) | Placeholder video generation (dev tooling) |
+| Kotlin + Jetpack Compose + CameraX + Room | Android creator app |
 
 ---
 
@@ -637,12 +703,15 @@ No tests exist yet. Recommended coverage:
 | Script | Description |
 |--------|-------------|
 | `npm run dev` | Start Vite dev server with HMR |
+| `npm run dev:api` | Start Node import API on `localhost:8787` |
+| `npm run dev:all` | Start web and API together |
 | `npm run build` | TypeScript check + production build to `dist/` |
 | `npm run preview` | Preview production build locally |
 | `npm run lint` | Run ESLint |
 | `npm run validate-sample` | Validate the included sample story |
 | `npm run validate-story` | Validate any story JSON file |
 | `npm run generate-placeholders` | Generate placeholder videos for sample story |
+| `npm run test:e2e:import` | API smoke test (imports a generated draft package and verifies catalog) |
 
 ---
 

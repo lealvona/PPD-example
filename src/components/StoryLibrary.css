@@ -1,0 +1,91 @@
+.story-library {
+  min-height: 100vh;
+  padding: 2rem;
+  color: #fff;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(78, 205, 196, 0.15), transparent 35%),
+    radial-gradient(circle at 90% 10%, rgba(241, 143, 1, 0.12), transparent 30%),
+    linear-gradient(160deg, #091018 0%, #10131f 50%, #151224 100%);
+}
+
+.story-library__header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.story-library__header p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0.5rem 0 0;
+}
+
+.story-library__import {
+  margin-top: 1.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.story-library__import input {
+  color: #fff;
+}
+
+.story-library__import progress {
+  width: 100%;
+  height: 10px;
+}
+
+.story-library__status {
+  margin-top: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.story-library__grid {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.story-library__card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 200px;
+}
+
+.story-library__card h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.story-library__card p {
+  margin: 0.5rem 0;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.story-library__card small {
+  display: block;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.story-library__card button {
+  margin-top: 1rem;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  background: #4ecdc4;
+  color: #091018;
+  font-weight: 600;
+}
+
+.story-library__error {
+  margin-top: 1rem;
+  color: #ff8a8a;
+}

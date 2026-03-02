@@ -15,9 +15,20 @@ export interface StartScreenProps {
 
   /** Callback when user clicks "Begin". */
   onStart: () => void;
+
+  /** Optional callback to resume previously saved progress. */
+  onResume?: () => void;
+
+  /** Whether resume is available. */
+  canResume?: boolean;
 }
 
-export const StartScreen: FC<StartScreenProps> = ({ meta, onStart }) => {
+export const StartScreen: FC<StartScreenProps> = ({
+  meta,
+  onStart,
+  onResume,
+  canResume = false,
+}) => {
   return (
     <div className="start-screen">
       <div className="start-screen__content">
@@ -48,9 +59,16 @@ export const StartScreen: FC<StartScreenProps> = ({ meta, onStart }) => {
           </div>
         )}
 
-        <button className="start-screen__begin" onClick={onStart}>
-          Begin Story
-        </button>
+        <div className="start-screen__actions">
+          <button className="start-screen__begin" onClick={onStart}>
+            Begin Story
+          </button>
+          {canResume && onResume && (
+            <button className="start-screen__resume" onClick={onResume}>
+              Continue
+            </button>
+          )}
+        </div>
 
         <p className="start-screen__hint">
           You will make choices that shape the story.

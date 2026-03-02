@@ -9,13 +9,7 @@
  *  - Provide basic playback controls (play/pause, mute, volume)
  */
 
-import {
-  useRef,
-  useEffect,
-  useState,
-  useCallback,
-  type FC,
-} from "react";
+import { useRef, useEffect, useState, useCallback, type FC } from "react";
 import type { StoryNode } from "../types/story";
 import "./VideoPlayer.css";
 
@@ -40,6 +34,12 @@ export interface VideoPlayerProps {
 
   /** Whether to auto-play. Default: true */
   autoPlay?: boolean;
+
+  /** Callback when playback pause/play state changes. */
+  onPlaybackStateChange?: (isPlaying: boolean) => void;
+
+  /** Callback when video fails to load/play. */
+  onPlaybackError?: () => void;
 }
 
 export const VideoPlayer: FC<VideoPlayerProps> = ({
@@ -50,6 +50,8 @@ export const VideoPlayer: FC<VideoPlayerProps> = ({
   preloadUrls = [],
   volume = 1,
   autoPlay = true,
+  onPlaybackStateChange,
+  onPlaybackError,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -57,14 +59,6 @@ export const VideoPlayer: FC<VideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [progress, setProgress] = useState(0);
-
-  // Reset state when node changes
-  useEffect(() => {
-    setIsLoading(true);
-    setHasError(false);
-    setProgress(0);
-    setIsPlaying(false);
-  }, [node.id]);
 
   // Set volume
   useEffect(() => {
@@ -86,8 +80,15 @@ export const VideoPlayer: FC<VideoPlayerProps> = ({
     }
   }, [autoPlay]);
 
-  const handlePlay = useCallback(() => setIsPlaying(true), []);
-  const handlePause = useCallback(() => setIsPlaying(false), []);
+  const handlePlay = useCallback(() => {
+    setIsPlaying(true);
+    onPlaybackStateChange?.(true);
+  }, [onPlaybackStateChange]);
+
+  const handlePause = useCallback(() => {
+    setIsPlaying(false);
+    onPlaybackStateChange?.(false);
+  }, [onPlaybackStateChange]);
 
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
@@ -101,7 +102,8 @@ export const VideoPlayer: FC<VideoPlayerProps> = ({
     setIsLoading(false);
     setHasError(true);
     console.error(`[VideoPlayer] Error loading video: ${videoUrl}`);
-  }, [videoUrl]);
+    onPlaybackError?.();
+  }, [videoUrl, onPlaybackError]);
 
   // Playback toggle
   const togglePlay = useCallback(() => {
@@ -151,6 +153,7 @@ export const VideoPlayer: FC<VideoPlayerProps> = ({
           >
             Retry
           </button>
+          <button onClick={onEnded}>Skip Scene</button>
         </div>
       )}
 

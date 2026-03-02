@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "interactive-cyoa-package-manifest-v1",
+  "title": "Interactive CYOA Package Manifest",
+  "type": "object",
+  "required": [
+    "packageVersion",
+    "storyFile",
+    "videoDirectory",
+    "completeness",
+    "generatedAt"
+  ],
+  "properties": {
+    "packageVersion": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "storyFile": {
+      "type": "string",
+      "const": "story.json"
+    },
+    "videoDirectory": {
+      "type": "string",
+      "const": "videos"
+    },
+    "completeness": {
+      "type": "string",
+      "enum": ["complete", "incomplete"]
+    },
+    "generatedAt": {
+      "type": "string"
+    },
+    "missingAssets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

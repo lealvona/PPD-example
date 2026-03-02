@@ -126,6 +126,28 @@
   letter-spacing: 0.02em;
 }
 
+.start-screen__actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.start-screen__resume {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.start-screen__resume:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .start-screen__begin:hover {
   background: #45b8b0;
   transform: translateY(-2px);
@@ -153,5 +175,14 @@
   .start-screen__begin {
     padding: 0.75rem 2rem;
     font-size: 1.1rem;
+  }
+
+  .start-screen__actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .start-screen__resume {
+    width: 100%;
   }
 }
