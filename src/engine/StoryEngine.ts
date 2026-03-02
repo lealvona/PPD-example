@@ -21,6 +21,7 @@ import type {
   StoryConfig,
   StoryMeta,
 } from "../types/story";
+import { assertStoryValid } from "../utils/validateStory";
 
 // ---------------------------------------------------------------------------
 // Event system
@@ -32,7 +33,8 @@ export type StoryEventType =
   | "nodeExit"
   | "choiceMade"
   | "storyEnd"
-  | "error";
+  | "error"
+  | "progressLoaded";
 
 export interface StoryEvent {
   type: StoryEventType;
@@ -41,6 +43,15 @@ export interface StoryEvent {
 }
 
 export type StoryEventListener = (event: StoryEvent) => void;
+
+export interface StoryProgressSnapshot {
+  storyKey: string;
+  currentNodeId: string;
+  history: HistoryEntry[];
+  flags: string[];
+  phase: PlaybackPhase;
+  timestamp: number;
+}
 
 // ---------------------------------------------------------------------------
 // Engine
@@ -98,6 +109,11 @@ export class StoryEngine {
 
   get totalNodes(): number {
     return this.nodeMap.size;
+  }
+
+  get storyKey(): string {
+    if (!this._meta) return "";
+    return `${this._meta.title}::${this._meta.version}`;
   }
 
   // ---------- Event Emitter ----------
@@ -162,6 +178,7 @@ export class StoryEngine {
       }
 
       // Validate and index
+      assertStoryValid(definition);
       this.index(definition);
       this.setPhase("start_screen");
     } catch (err) {
@@ -271,6 +288,10 @@ export class StoryEngine {
 
   /** Go back to the previous node in history. */
   goBack(): boolean {
+    if (!this._config?.allowRevisit) {
+      return false;
+    }
+
     if (this._state.history.length < 2) return false;
 
     // Remove current entry
@@ -330,6 +351,51 @@ export class StoryEngine {
       if (!c.condition) return true;
       return this._state.flags.has(c.condition);
     });
+  }
+
+  createProgressSnapshot(): StoryProgressSnapshot | null {
+    if (!this._state.currentNode || !this._meta) return null;
+
+    return {
+      storyKey: this.storyKey,
+      currentNodeId: this._state.currentNode.id,
+      history: this._state.history.map((item) => ({ ...item })),
+      flags: Array.from(this._state.flags),
+      phase: this._state.phase,
+      timestamp: Date.now(),
+    };
+  }
+
+  loadProgressSnapshot(snapshot: StoryProgressSnapshot): boolean {
+    if (!this.isLoaded) return false;
+    if (snapshot.storyKey !== this.storyKey) return false;
+
+    const currentNode = this.nodeMap.get(snapshot.currentNodeId);
+    if (!currentNode) return false;
+
+    const validHistory = snapshot.history.filter((entry) =>
+      this.nodeMap.has(entry.nodeId)
+    );
+
+    this._state.currentNode = currentNode;
+    this._state.history =
+      validHistory.length > 0
+        ? validHistory.map((entry) => ({ ...entry }))
+        : [{ nodeId: currentNode.id, timestamp: Date.now() }];
+    this._state.flags = new Set(snapshot.flags);
+    this._state.error = undefined;
+
+    if (currentNode.type === "ending") {
+      this._state.phase = "ended";
+    } else if (snapshot.phase === "choosing") {
+      this._state.phase = "choosing";
+    } else {
+      this._state.phase = "playing";
+    }
+
+    this.emit("progressLoaded", { snapshot });
+    this.emit("stateChange");
+    return true;
   }
 
   // ---------- Internal ----------
