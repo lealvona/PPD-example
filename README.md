@@ -630,7 +630,13 @@ Needed:
 
 #### 8. Testing
 
-No tests exist yet. Recommended coverage:
+Current test coverage:
+
+- `StoryEngine` unit tests in `src/engine/StoryEngine.test.ts` (Vitest)
+- API import smoke test (`npm run test:e2e:import`)
+- API security smoke test (`npm run test:e2e:import-security`)
+
+Recommended next coverage:
 
 - **Unit tests** for `StoryEngine` (load, navigate, conditions, history, edge cases).
 - **Unit tests** for `validateStory` utility.
@@ -708,10 +714,12 @@ Build/run (from `android-creator/`):
 | `npm run build` | TypeScript check + production build to `dist/` |
 | `npm run preview` | Preview production build locally |
 | `npm run lint` | Run ESLint |
+| `npm run test` | Run unit tests with Vitest |
 | `npm run validate-sample` | Validate the included sample story |
 | `npm run validate-story` | Validate any story JSON file |
 | `npm run generate-placeholders` | Generate placeholder videos for sample story |
 | `npm run test:e2e:import` | API smoke test (imports a generated draft package and verifies catalog) |
+| `npm run test:e2e:import-security` | API security smoke test (path traversal and unexpected-file rejection) |
 
 ---
 
