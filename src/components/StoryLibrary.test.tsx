@@ -6,13 +6,13 @@ import { StoryLibrary } from "./StoryLibrary";
 
 const apiMocks = vi.hoisted(() => {
   return {
-    fetchStoryCatalog: vi.fn(),
+    fetchAllStories: vi.fn(),
     importStoryZipWithProgress: vi.fn(),
   };
 });
 
 vi.mock("../utils/storyApi", () => ({
-  fetchStoryCatalog: apiMocks.fetchStoryCatalog,
+  fetchAllStories: apiMocks.fetchAllStories,
   importStoryZipWithProgress: apiMocks.importStoryZipWithProgress,
 }));
 
@@ -29,6 +29,21 @@ const importedStory: StoryCatalogItem = {
   },
 };
 
+const bundledStory: StoryCatalogItem = {
+  id: "sample",
+  storyUrl: "/stories/sample/story.json",
+  importedAt: new Date().toISOString(),
+  completeness: "complete",
+  meta: {
+    title: "The Forgotten Lab",
+    description: "Sample branching story bundled with the app.",
+    author: "Interactive PPD Team",
+    version: "1.0.0",
+    estimatedMinutes: 5,
+    tags: ["sample"],
+  },
+};
+
 describe("StoryLibrary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,8 +53,8 @@ describe("StoryLibrary", () => {
     cleanup();
   });
 
-  it("renders fallback sample and opens it", async () => {
-    apiMocks.fetchStoryCatalog.mockResolvedValue([]);
+  it("renders bundled sample and opens it", async () => {
+    apiMocks.fetchAllStories.mockResolvedValue([bundledStory]);
     const onOpenStory = vi.fn();
 
     render(<StoryLibrary onOpenStory={onOpenStory} />);
@@ -53,7 +68,7 @@ describe("StoryLibrary", () => {
   });
 
   it("imports zip with progress and auto-opens imported story", async () => {
-    apiMocks.fetchStoryCatalog.mockResolvedValue([importedStory]);
+    apiMocks.fetchAllStories.mockResolvedValue([bundledStory, importedStory]);
     apiMocks.importStoryZipWithProgress.mockImplementation(
       async (_file: File, onProgress?: (progressPercent: number) => void) => {
         onProgress?.(50);
