@@ -1,6 +1,8 @@
 import { useEffect, useState, type FC } from "react";
 import type { StoryCatalogItem } from "../types/library";
 import { fetchAllStories, importStoryZipWithProgress } from "../utils/storyApi";
+import { ThemeToggle } from "./ThemeToggle";
+import { useTheme } from "../hooks/useTheme";
 import "./StoryLibrary.css";
 
 export interface StoryLibraryProps {
@@ -13,6 +15,7 @@ export const StoryLibrary: FC<StoryLibraryProps> = ({ onOpenStory }) => {
   const [error, setError] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const { currentTheme, isThemeSwitchingAllowed, isDarkModeEnabled } = useTheme();
 
   const loadStories = async () => {
     setIsLoading(true);
@@ -38,8 +41,24 @@ export const StoryLibrary: FC<StoryLibraryProps> = ({ onOpenStory }) => {
   return (
     <main className="story-library">
       <header className="story-library__header">
-        <h1>Interactive Story Library</h1>
-        <p>Import new CYOA packages or launch an existing story.</p>
+        <div className="story-library__header-left">
+          <img 
+            src={currentTheme.assets.logo} 
+            alt={`${currentTheme.meta.appName} logo`}
+            className="story-library__logo"
+            width="40"
+            height="40"
+          />
+          <div>
+            <h1>{currentTheme.meta.appName}</h1>
+            <p>{currentTheme.meta.tagline}</p>
+          </div>
+        </div>
+        {(isThemeSwitchingAllowed || isDarkModeEnabled) && (
+          <div className="story-library__header-right">
+            <ThemeToggle variant="dropdown" />
+          </div>
+        )}
       </header>
 
       <section className="story-library__import">
