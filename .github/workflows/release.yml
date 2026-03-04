@@ -20,59 +20,37 @@ jobs:
       - run: npm run build
         env:
           GITHUB_PAGES: true
-      - run: |
+      - name: Build web
+        run: |
           VERSION="${GITHUB_REF#refs/tags/}"
-          mkdir -p release
-          cd dist
+          npm run build
+        env:
+          GITHUB_PAGES: "true"
+
+      - name: Package web
+        working-directory: dist
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          mkdir -p ../release
           # Create README
-          cat > README.txt << 'ENDOFFILE'
-================================================================================
-CYOA-CREATOR WEB APPLICATION
-================================================================================
-
-VERSION: $VERSION
-
-REQUIREMENTS:
-- A web server (nginx, Apache, Caddy, GitHub Pages, Vercel, Netlify)
-- HTTPS recommended for production use
-
-DEPLOYMENT OPTIONS:
-
-1. GitHub Pages - Upload to gh-pages branch
-2. Nginx - Copy to /var/www/cyoa-creator/
-3. Apache - Copy to /var/www/html/cyoa-creator/
-4. Docker - Use nginx:alpine
-5. Vercel/Netlify - Drag and drop
-
-Note: Client-side SPA. All data stored in browser localStorage.
-================================================================================
-ENDOFFILE
+          echo "CYOA-creator Web v${VERSION}" > README.txt
+          echo "Deploy to any web server. See GitHub wiki for instructions." >> README.txt
           cp README.txt README.md
           # Create deploy script
-          cat > deploy.sh << 'ENDOFFILE'
-#!/bin/bash
-# CYOA-creator Web Deployment Script
-TARGET="${1:-/var/www/cyoa-creator}"
-echo "Deploying CYOA-creator to $TARGET"
-if [ "$EUID" -eq 0 ]; then
-    mkdir -p "$TARGET" && cp -r . "$TARGET/"
-    echo "Deployed successfully!"
-else
-    echo "Run with sudo or use Docker"
-    exit 1
-fi
-ENDOFFILE
+          echo '#!/bin/bash' > deploy.sh
+          echo 'TARGET="${1:-/var/www/cyoa}"' >> deploy.sh
+          echo 'mkdir -p "$TARGET" && cp -r . "$TARGET/"' >> deploy.sh
           chmod +x deploy.sh
           # Create .htaccess
-          cat > .htaccess << 'ENDOFFILE'
-RewriteEngine On
-RewriteBase /
-RewriteRule ^index\.html$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
-ENDOFFILE
+          echo "RewriteEngine On" > .htaccess
+          echo "RewriteBase /" >> .htaccess
+          echo "RewriteRule ^index.html$ - [L]" >> .htaccess
+          echo "RewriteCond %{REQUEST_FILENAME} !-f" >> .htaccess
+          echo "RewriteCond %{REQUEST_FILENAME} !-d" >> .htaccess
+          echo "RewriteRule . /index.html [L]" >> .htaccess
+          # Create zip
           zip -r ../release/CYOA-creator-web-${VERSION}.zip .
+
       - uses: actions/upload-artifact@v4
         with:
           name: web-artifact
