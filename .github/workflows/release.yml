@@ -87,26 +87,55 @@ ENDREADME
 
   build-android:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      
+      - name: Setup JDK
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
-      - run: |
+          cache: gradle
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android-creator/.gradle
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+      
+      - name: Build Android APK
+        run: |
           cd android-creator
           chmod +x gradlew
-          ./gradlew assembleDebug
-      - run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace
+      
+      - name: Verify APK exists
+        run: |
+          ls -la android-creator/app/build/outputs/apk/debug/
+          test -f android-creator/app/build/outputs/apk/debug/*.apk || exit 1
+      
+      - name: Prepare APK for release
+        run: |
           VERSION="${GITHUB_REF#refs/tags/}"
           VERSION="${VERSION#v}"
-          cp android-creator/app/build/outputs/apk/debug/*.apk CYOA-creator-android-${VERSION}.apk
-      - uses: actions/upload-artifact@v4
+          APK_FILE=$(ls android-creator/app/build/outputs/apk/debug/*.apk | head -1)
+          cp "$APK_FILE" "CYOA-creator-android-${VERSION}.apk"
+          echo "APK created: CYOA-creator-android-${VERSION}.apk"
+          ls -la "CYOA-creator-android-${VERSION}.apk"
+      
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
         with:
           name: android-artifact
           path: CYOA-creator-android-*.apk
+          if-no-files-found: error
 
   release:
     needs: [build-web, build-android]
@@ -127,12 +156,11 @@ ENDREADME
         with:
           name: android-artifact
           path: artifacts
-        continue-on-error: true
       - name: Organize files
         run: |
           mkdir -p release
           find artifacts -name "*.zip" -exec cp {} release/ \;
-          find artifacts -name "*.apk" -exec cp {} release/ \; 2>/dev/null || true
+          find artifacts -name "*.apk" -exec cp {} release/ \;
           ls -la release/
       - name: Generate changelog
         run: |
