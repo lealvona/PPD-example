@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <!-- Background circle -->
+  <path
+      android:fillColor="#0f172a"
+      android:pathData="M0,0h108v108h-108z"/>
+  <!-- Campfire base -->
+  <path
+      android:fillColor="#5d4037"
+      android:pathData="M35,75 L45,85 L65,85 L75,75 L70,70 L40,70 Z"/>
+  <!-- Flame outer -->
+  <path
+      android:fillColor="#ff6b35"
+      android:pathData="M54,75 Q40,60 42,45 Q44,30 54,20 Q64,30 66,45 Q68,60 54,75 Z"/>
+  <!-- Flame inner -->
+  <path
+      android:fillColor="#ffd700"
+      android:pathData="M54,72 Q46,60 48,50 Q50,38 54,32 Q58,38 60,50 Q62,60 54,72 Z"/>
+  <!-- Comedy mask (left) -->
+  <path
+      android:fillColor="#f1f5f9"
+      android:pathData="M40,40 A5,6 0 1,1 40.01,40"/>
+  <!-- Tragedy mask (right) -->
+  <path
+      android:fillColor="#f1f5f9"
+      android:pathData="M68,40 A5,6 0 1,1 68.01,40"/>
+  <!-- CYOA text -->
+  <path
+      android:fillColor="#f1f5f9"
+      android:pathData="M44,92 L64,92 L64,96 L44,96 Z"/>
+</vector>

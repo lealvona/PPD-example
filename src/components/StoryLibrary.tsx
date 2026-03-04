@@ -7,9 +7,10 @@ import "./StoryLibrary.css";
 
 export interface StoryLibraryProps {
   onOpenStory: (story: StoryCatalogItem) => void;
+  onViewAnalytics?: (story: StoryCatalogItem) => void;
 }
 
-export const StoryLibrary: FC<StoryLibraryProps> = ({ onOpenStory }) => {
+export const StoryLibrary: FC<StoryLibraryProps> = ({ onOpenStory, onViewAnalytics }) => {
   const [stories, setStories] = useState<StoryCatalogItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +121,17 @@ export const StoryLibrary: FC<StoryLibraryProps> = ({ onOpenStory }) => {
                     : "Incomplete package (playable draft)"}
                 </small>
               </div>
-              <button onClick={() => onOpenStory(story)}>Play</button>
+              <div className="story-library__card-actions">
+                <button onClick={() => onOpenStory(story)}>Play</button>
+                {onViewAnalytics && (
+                  <button 
+                    className="story-library__analytics-btn"
+                    onClick={() => onViewAnalytics(story)}
+                  >
+                    Analytics
+                  </button>
+                )}
+              </div>
             </article>
           ))}
         </section>

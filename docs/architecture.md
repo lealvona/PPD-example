@@ -461,5 +461,4 @@ Vite provides HMR for fast development:
 
 - [Quick Start Guide](quickstart.md)
 - [Story Format](story-format.md)
-- [API Reference](api-reference.md)
-- [Component Reference](components.md)
+- [Theme System](themes.md)
