@@ -85,6 +85,22 @@
   font-weight: 600;
 }
 
+.story-library__card-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.story-library__card-actions button {
+  margin-top: 0;
+  flex: 1;
+}
+
+.story-library__analytics-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #fff !important;
+}
+
 .story-library__error {
   margin-top: 1rem;
   color: #ff8a8a;

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { StoryViewer } from "./components/StoryViewer";
 import { StoryLibrary } from "./components/StoryLibrary";
+import { AnalyticsDashboard } from "./components/AnalyticsDashboard";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import type { StoryCatalogItem } from "./types/library";
@@ -15,6 +16,7 @@ import type { StoryCatalogItem } from "./types/library";
  */
 function App() {
   const [activeStory, setActiveStory] = useState<StoryCatalogItem | null>(null);
+  const [analyticsStory, setAnalyticsStory] = useState<StoryCatalogItem | null>(null);
 
   const handleShortcut = useCallback((key: string) => {
     // Handle global keyboard shortcuts
@@ -22,23 +24,41 @@ function App() {
       case 'escape':
         if (activeStory) {
           setActiveStory(null);
+        } else if (analyticsStory) {
+          setAnalyticsStory(null);
         }
         break;
       case '?':
-        // Could show keyboard shortcuts modal
         console.log('Keyboard shortcuts help');
         break;
       default:
         break;
     }
-  }, [activeStory]);
+  }, [activeStory, analyticsStory]);
+
+  const handleViewAnalytics = useCallback((story: StoryCatalogItem) => {
+    setAnalyticsStory(story);
+  }, []);
+
+  const handleCloseAnalytics = useCallback(() => {
+    setAnalyticsStory(null);
+  }, []);
 
   return (
     <ErrorBoundary>
       <KeyboardShortcuts onShortcut={handleShortcut} />
       
-      {!activeStory ? (
-        <StoryLibrary onOpenStory={setActiveStory} />
+      {analyticsStory ? (
+        <AnalyticsDashboard
+          storyKey={`${analyticsStory.id ?? analyticsStory.meta.title}::${analyticsStory.meta.version}`}
+          storyTitle={analyticsStory.meta.title}
+          onClose={handleCloseAnalytics}
+        />
+      ) : !activeStory ? (
+        <StoryLibrary 
+          onOpenStory={setActiveStory}
+          onViewAnalytics={handleViewAnalytics}
+        />
       ) : (
         <StoryViewer
           storyUrl={activeStory.storyUrl}
