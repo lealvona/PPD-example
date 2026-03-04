@@ -26,57 +26,24 @@ jobs:
           VERSION="${GITHUB_REF#refs/tags/}"
           mkdir -p release
           cp -r dist/* release/web/
-          
-          # Add docs
           mkdir -p release/web/docs
           cp docs/*.md release/web/docs/ 2>/dev/null || true
-
-          # Add deploy scripts
           echo '#!/bin/bash' > release/web/deploy.sh
           echo 'TARGET="${1:-/var/www/cyoa}"' >> release/web/deploy.sh
           echo 'sudo mkdir -p "$TARGET" && sudo cp -r . "$TARGET/"' >> release/web/deploy.sh
           chmod +x release/web/deploy.sh
-
-          # Add PowerShell script
           echo '@echo off' > release/web/deploy.bat
           echo 'set TARGET=C:\inetpub\wwwroot\cyoa' >> release/web/deploy.bat
           echo 'mkdir "%TARGET%" 2>nul' >> release/web/deploy.bat
           echo 'xcopy /E /Y * "%TARGET%\\"' >> release/web/deploy.bat
-
-          # Add configs
           echo "RewriteEngine On" > release/web/.htaccess
-          echo "RewriteBase /" >> release/web/.htaccess  
+          echo "RewriteBase /" >> release/web/.htaccess
           echo "RewriteRule ^index.html$ - [L]" >> release/web/.htaccess
           echo "RewriteCond %{REQUEST_FILENAME} !-f" >> release/web/.htaccess
           echo "RewriteCond %{REQUEST_FILENAME} !-d" >> release/web/.htaccess
           echo "RewriteRule . /index.html [L]" >> release/web/.htaccess
-
-          # Create README
-          cat > release/web/README.md << 'ENDREADME'
-# CYOA-creator Web
-
-Version: $VERSION
-
-## Quick Start
-Extract and open index.html, or deploy to web server.
-
-## Deployment
-- Linux: sudo ./deploy.sh
-- Windows: Run deploy.bat as Admin
-- Docker: docker-compose up -d
-- IIS: Use web.config
-
-## Features
-- Video stories with choices
-- Save/resume (localStorage)
-- Themes
-- Analytics
-
-## Privacy
-All data stored in browser. No server storage.
-ENDREADME
-          cp release/web/README.md release/web/README.txt
-
+          echo "CYOA-creator Web" > release/web/README.txt
+          echo "Version: $VERSION" >> release/web/README.txt
           cd release
           zip -r CYOA-creator-web-${VERSION}.zip web/
 
@@ -89,49 +56,20 @@ ENDREADME
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup JDK
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
-      
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-      
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            android-creator/.gradle
-          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-
-      
-      - name: Build Android APK
-        run: |
+      - uses: android-actions/setup-android@v3
+      - run: |
           cd android-creator
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
-      
-      - name: Verify APK exists
-        run: |
-          ls -la android-creator/app/build/outputs/apk/debug/
-          test -f android-creator/app/build/outputs/apk/debug/*.apk || exit 1
-      
-      - name: Prepare APK for release
-        run: |
+          ./gradlew assembleDebug --no-daemon
+      - run: |
           VERSION="${GITHUB_REF#refs/tags/}"
           VERSION="${VERSION#v}"
-          APK_FILE=$(ls android-creator/app/build/outputs/apk/debug/*.apk | head -1)
-          cp "$APK_FILE" "CYOA-creator-android-${VERSION}.apk"
-          echo "APK created: CYOA-creator-android-${VERSION}.apk"
-          ls -la "CYOA-creator-android-${VERSION}.apk"
-      
-      - name: Upload Android artifact
-        uses: actions/upload-artifact@v4
+          cp android-creator/app/build/outputs/apk/debug/*.apk CYOA-creator-android-${VERSION}.apk
+      - uses: actions/upload-artifact@v4
         with:
           name: android-artifact
           path: CYOA-creator-android-*.apk
@@ -146,37 +84,28 @@ ENDREADME
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Download web artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: web-artifact
           path: artifacts
-      - name: Download android artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: android-artifact
           path: artifacts
-      - name: Organize files
-        run: |
+      - run: |
           mkdir -p release
           find artifacts -name "*.zip" -exec cp {} release/ \;
           find artifacts -name "*.apk" -exec cp {} release/ \;
           ls -la release/
-      - name: Generate changelog
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
+      - run: |
           echo "## What's Changed" > release-notes.md
           echo "" >> release-notes.md
           git log --oneline -15 >> release-notes.md
           echo "" >> release-notes.md
-          echo "---" >> release-notes.md
-          echo "" >> release-notes.md
           echo "Live Demo: https://lealvona.github.io/CYOA-creator/" >> release-notes.md
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.md
           files: release/*
-          draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
