@@ -30,11 +30,31 @@
 </p>
 
 <p align="center">
-  <a href="https://lealvona.github.io/CYOA-creator/"><img src="https://img.shields.io/badge/Live_Demo-View_Now-brightgreen?style=for-the-badge" alt="Live Demo"></a>
-  <a href="https://github.com/lealvona/CYOA-creator/releases/latest"><img src="https://img.shields.io/github/v/release/lealvona/CYOA-creator?style=for-the-badge&label=Download" alt="Latest Release"></a>
+  <a href="https://github.com/lealvona/CYOA-creator/releases/latest"><img src="https://img.shields.io/badge/Download-Latest_Release-blue?style=for-the-badge&logo=github" alt="Download Latest Release"></a>
+  <a href="https://lealvona.github.io/CYOA-creator/"><img src="https://img.shields.io/badge/Live_Demo-View_UI-green?style=for-the-badge" alt="Live Demo"></a>
 </p>
 
-> **Note about the Live Demo:** The [live demo](https://lealvona.github.io/CYOA-creator/) showcases the UI and allows browsing bundled stories. However, **story uploads and imports require the API server** which cannot run on GitHub Pages (static hosting only). To use the full functionality including ZIP imports, [download the release](https://github.com/lealvona/CYOA-creator/releases/latest) or run locally with `npm run dev:all`.
+## 📦 Download Options
+
+Each release includes three packages:
+
+1. **📱 Android App** (`CYOA-Creator-v*.apk`) - Install on your Android device
+2. **🖥️ Server Package** (`CYOA-Creator-Server-*.zip`) - Run the backend API on your computer
+3. **🌐 Web Package** (`CYOA-creator-web-*.zip`) - Deploy the web frontend to any static host
+
+### Quick Start
+
+1. **Download both the Android APK and Server Package** from [the latest release](https://github.com/lealvona/CYOA-creator/releases/latest)
+2. **Install the Android app** on your phone
+3. **Run the server** on your computer:
+   - Extract the server zip
+   - Run `setup.sh` (Mac/Linux) or `setup.bat` (Windows)
+   - The interactive script will guide you through setup
+4. **Connect**: Make sure phone and computer are on the same WiFi
+5. **Create**: Use the app to record video clips and manage your story
+6. **Import**: Upload your story via the web interface
+
+> **Note about the Live Demo:** The [live demo](https://lealvona.github.io/CYOA-creator/) showcases the UI and allows browsing bundled stories. However, **story uploads and imports require the API server** which cannot run on GitHub Pages. Use the Server Package above for full functionality.
 
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/lealvona/CYOA-creator/ci.yml?branch=master&label=CI" alt="CI Status">
