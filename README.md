@@ -1,4 +1,10 @@
 <p align="center">
+  <a href="https://github.com/lealvona/CYOA-creator/releases/latest">
+    <img src="https://img.shields.io/badge/Full%20Working%20Version-Available%20in%20Releases-success?style=for-the-badge&logo=android" alt="Full Working Version Available in Releases">
+  </a>
+</p>
+
+<p align="center">
   <img src="public/branding/logo.svg" alt="Interactive Story Engine Logo" width="120" height="120">
 </p>
 
