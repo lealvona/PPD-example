@@ -34,6 +34,8 @@
   <a href="https://github.com/lealvona/CYOA-creator/releases/latest"><img src="https://img.shields.io/github/v/release/lealvona/CYOA-creator?style=for-the-badge&label=Download" alt="Latest Release"></a>
 </p>
 
+> **Note about the Live Demo:** The [live demo](https://lealvona.github.io/CYOA-creator/) showcases the UI and allows browsing bundled stories. However, **story uploads and imports require the API server** which cannot run on GitHub Pages (static hosting only). To use the full functionality including ZIP imports, [download the release](https://github.com/lealvona/CYOA-creator/releases/latest) or run locally with `npm run dev:all`.
+
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/lealvona/CYOA-creator/ci.yml?branch=master&label=CI" alt="CI Status">
   <img src="https://img.shields.io/github/actions/workflow/status/lealvona/CYOA-creator/pages.yml?branch=master&label=Pages" alt="Pages Status">
